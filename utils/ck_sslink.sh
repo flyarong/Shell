@@ -1,8 +1,8 @@
 get_link_of_ck2(){
     local ckauid=$1
     if [ ${#ckauid} == 24 ] && [ -e '/usr/local/bin/ck-client' ]; then
-        local shadowsockscipher=$(cat ${SHADOWSOCKS_LIBEV_CONFIG} | jq -r .method)
-        local shadowsockspwd=$(cat ${SHADOWSOCKS_LIBEV_CONFIG} | jq -r .password)
+        local shadowsockscipher=$(cat ${SHADOWSOCKS_CONFIG} | jq -r .method)
+        local shadowsockspwd=$(cat ${SHADOWSOCKS_CONFIG} | jq -r .password)
         local ckpub=$(cat ${CK_CLIENT_CONFIG} | jq -r .PublicKey)
         local ckservername=$(cat ${CK_CLIENT_CONFIG} | jq -r .ServerName)
         
@@ -20,7 +20,7 @@ get_link_of_ck2(){
         echo -e " Usage:"
         echo -e "   ./ss-plugins.sh link <new add user uid>"
         echo
-        echo -e " ${Error} 请检查参数UID是否正确，并且，使用 ./ss-plugins.sh uid 添加过新用户..."
+        echo -e " ${Error} 请检查参数UID是否正确，并且，使用 ./ss-plugins.sh uid 添加过新用户."
         echo
         exit 1
     fi

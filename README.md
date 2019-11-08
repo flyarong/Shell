@@ -35,18 +35,30 @@ Usage: ./ss-plugins.sh [options...] [args...]
 相关目录：
 
     SS-libev安装目录：/usr/local/bin
-    SS-libev配置文件：/etc/shadowsocks-libev/config.json
+    SS-libev启动文件：/etc/init.d/shadowsocks-libev
+    SS-libev配置文件：/etc/shadowsocks/config.json
+    
+    SS-rust安装目录：/usr/local/bin
+    SS-rust启动文件：/etc/init.d/shadowsocks-rust
+    SS-rust配置文件：/etc/shadowsocks/config.json
 
     kcptun安装目录：/usr/local/kcptun
+    kcptun启动文件：/etc/init.d/kcptun
     kcptun配置文件：/etc/kcptun/config.json
+    
+    cloak安装目录：/usr/local/bin
+    cloak启动文件：/etc/init.d/cloak
+    cloak配置文件：/etc/cloak/ckserver.json
 
     caddy安装目录：/usr/local/caddy
     caddy配置文件: /usr/local/caddy/Caddyfile
+    caddy日志文件：/tmp/caddy.log
     caddy生成证书目录：~/.caddy/acme/acme-v02.api.letsencrypt.org/sites/xxx.xxx(域名)/
 
     acme.sh安装目录：~/.acme.sh
     acme.sh生成证书目录：~/.acme.sh/xxx.xxx(域名)/
-
+	
+    cloudflare API存储路径：~/.api/cf.api
     其它插件可执行二进制文件目录：/usr/local/bin
 ```
 
@@ -71,7 +83,7 @@ Usage: ./ss-plugins.sh [options...] [args...]
 2. ### 可选插件与插件可选项
 
 ~~~shell
-  1. v2ray
+  1. v2ray-plugin
         1. ws+http
         2. ws+tls+[cdn]
         3. quic+tls+[cdn]
@@ -89,13 +101,13 @@ Usage: ./ss-plugins.sh [options...] [args...]
     kcptun仅用于加速。
     simple-obfs已被弃用，但不影响使用。
     cloak是goquiet的升级版，增加了同端口，多用户。
-    v2ray插件，带tls的都需要域名，cdn此处仅支持cloudflare，web则用了caddy。
+    v2ray-plugin，带tls的都需要域名，cdn此处仅支持cloudflare，web则用了caddy。
 	
-    使用v2ray插件的选项3时，请在CloudFlare后台Network页面，找到QUIC BETA设置项，点击Join the Waitlist 进行申请
+    使用v2ray-plugin的选项3时，请在CloudFlare后台Network页面，找到QUIC BETA设置项，点击Join the Waitlist 进行申请
 成功会收到邮件通知。由于是测试版，申请成功时间未定，也就意味着quic+tls+cdn，短时间无法使用。如需跳过cdn 只使用quic+tls 
 则须将ss客户端的 <服务器地址> --> <改为ip> 来使用（如若，依旧要填写域名，请使用原域名服务器进行解析。）
 	
-    使用v2ray插件的选项5时，请将CloudFlare后台Crypto页面里的SSL设置，改为 Full 或 Full (strict) 模式（前者不验证
+    使用v2ray-plugin的选项5时，请将CloudFlare后台Crypto页面里的SSL设置，改为 Full 或 Full (strict) 模式（前者不验证
 服务器证书，后者则会），否则，在浏览器打开你的域名会提示 ”重定向的次数过多“ 的错误！！！
 	
 
@@ -106,7 +118,7 @@ Usage: ./ss-plugins.sh [options...] [args...]
 
 3. ### 简略安装步骤-动图预览，以 ss + v2ray-plugin 为例：
 
-![01-v2ray-plugin](other/Images/01-v2ray-plugin.gif)
+![01-v2ray-plugin](./example.gif)
 
 &nbsp;
 
@@ -136,6 +148,10 @@ Usage: ./ss-plugins.sh [options...] [args...]
 
 &nbsp;
 
+![Stargazers over time](https://starchart.cc/loyess/Shell.svg)
+
+&nbsp;
+
 本脚本改自于各路大神，水平马马虎虎，方便自用。
 
 这里只对 linux-amd64 处理器架构做了支持，其它的就不要尝试了，推荐Ubuntu 18.04 LTS。
@@ -149,6 +165,7 @@ v2ray-plugin 所要用到的域名，可以从 [freenom.com](https://www.freenom
 **相关下载：**
 
 - [shadowsocks-libev](https://github.com/shadowsocks/shadowsocks-libev)
+- [shadowsocks-rust](https://github.com/shadowsocks/shadowsocks-rust)
 - [shadowsocks-windows](<https://github.com/shadowsocks/shadowsocks-windows/releases>)
 - [shadowsocks-android](<https://github.com/shadowsocks/shadowsocks-android/releases>)
 - [v2ray-plugin](<https://github.com/shadowsocks/v2ray-plugin/releases>)
