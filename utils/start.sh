@@ -145,12 +145,24 @@ cloak_start(){
 }
 
 caddy_start(){
-    if [ -e "${CADDY_FILE}" ]; then
-        if [[ -e ~/.api/cf.api ]]; then
-            export CLOUDFLARE_EMAIL=$(cat ~/.api/cf.api | grep "CLOUDFLARE_EMAIL" | cut -d= -f2)
-            export CLOUDFLARE_API_KEY=$(cat ~/.api/cf.api | grep "CLOUDFLARE_API_KEY" | cut -d= -f2)
-        fi
+    if [ -e "${CADDY_BIN_PATH}" ]; then
         /etc/init.d/caddy start
     fi  
 }
+
+nginx_start(){
+    if [ -e "${NGINX_BIN_PATH}" ]; then
+        systemctl start nginx
+        
+        if $(systemctl status nginx | grep -q '\(running\)'); then 
+            echo "Starting nginx success"
+        else
+            echo "Starting nginx failed"
+        fi
+    fi
+}
+
+
+
+
 

@@ -9,7 +9,7 @@ other_status(){
     
     if [ "$(command -v ssserver)" ]; then
         if [[ ! -z "${RUST_PID}" ]]; then
-            echo -e "${Info} shadowsocklibev-rust (pid ${PID}) is already running."
+            echo -e "${Info} shadowsocklibev-rust (pid ${RUST_PID}) is already running."
         else
             echo -e "${Point} shadowsocklibev-rust is already installed but not running."
         fi
@@ -65,13 +65,23 @@ other_status(){
         fi
     fi
     
-    if [ -e "${CADDY_FILE}" ]; then
+    if [ -e "${CADDY_BIN_PATH}" ]; then
         CADDY_PID=`ps -ef |grep -v grep | grep caddy |awk '{print $2}'`
         
         if [[ ! -z "${CADDY_PID}" ]]; then
             echo -e "${Info} caddy (pid ${CADDY_PID}) is already running."
         else
             echo -e "${Point} caddy is already installed but not running."
+        fi
+    fi
+    
+    if [ -e "${NGINX_BIN_PATH}" ]; then
+        NGINX_PID=`ps -ef |grep -v grep | grep nginx.conf |awk '{print $2}'`
+        
+        if [[ ! -z "${NGINX_PID}" ]]; then
+            echo -e "${Info} nginx (pid ${NGINX_PID}) is already running."
+        else
+            echo -e "${Point} nginx is already installed but not running."
         fi
     fi
 }

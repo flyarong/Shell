@@ -6,7 +6,7 @@ export PATH
 
 # shell version
 # ====================
-SHELL_VERSION="2.2.7"
+SHELL_VERSION="2.3.3"
 # ====================
 
 
@@ -35,8 +35,8 @@ HUMAN_CONFIG="/etc/shadowsocks/humanization.conf"
 
 # ss development language version
 SS_DLV=(
-shadowsocks-libev
-shadowsocks-rust
+ss-libev
+ss-rust
 )
 
 
@@ -45,12 +45,14 @@ SHADOWSOCKS_CONFIG="/etc/shadowsocks/config.json"
 
 # shadowsocks-libev config and init
 SHADOWSOCKS_LIBEV_INSTALL_PATH="/usr/local/bin"
+SHADOWSOCKS_LIBEV_BIN_PATH="/usr/local/bin/ss-server"
 SHADOWSOCKS_LIBEV_INIT="/etc/init.d/shadowsocks-libev"
 SHADOWSOCKS_LIBEV_CENTOS="${BASE_URL}/service/shadowsocks-libev_centos.sh"
 SHADOWSOCKS_LIBEV_DEBIAN="${BASE_URL}/service/shadowsocks-libev_debian.sh"
 
 # shadowsocks-rust config and init
 SHADOWSOCKS_RUST_INSTALL_PATH="/usr/local/bin"
+SHADOWSOCKS_RUST_BIN_PATH="/usr/local/bin/ssserver"
 SHADOWSOCKS_RUST_INIT="/etc/init.d/shadowsocks-rust"
 SHADOWSOCKS_RUST_CENTOS="${BASE_URL}/service/shadowsocks-rust_centos.sh"
 SHADOWSOCKS_RUST_DEBIAN="${BASE_URL}/service/shadowsocks-rust_debian.sh"
@@ -66,9 +68,14 @@ MBEDTLS_FILE="mbedtls-${MBEDTLS_VERSION}"
 MBEDTLS_URL="https://tls.mbed.org/download/mbedtls-${MBEDTLS_VERSION}-gpl.tgz"
 
 
+# v2ray-plugin
+V2RAY_PLUGIN_INSTALL_PATH="/usr/local/bin"
+V2RAY_PLUGIN_BIN_PATH="/usr/local/bin/v2ray-plugin"
+
 
 # kcptun
-KCPTUN_INSTALL_DIR="/usr/local/kcptun/kcptun-server"
+KCPTUN_INSTALL_PATH="/usr/local/kcptun"
+KCPTUN_BIN_PATH="/usr/local/kcptun/kcptun-server"
 KCPTUN_INIT="/etc/init.d/kcptun"
 KCPTUN_CONFIG="/etc/kcptun/config.json"
 KCPTUN_LOG_DIR="/var/log/kcptun-server.log"
@@ -76,7 +83,20 @@ KCPTUN_CENTOS="${BASE_URL}/service/kcptun_centos.sh"
 KCPTUN_DEBIAN="${BASE_URL}/service/kcptun_debian.sh"
 
 
+# simple-obfs
+SIMPLE_OBFS_INSTALL_PATH="/usr/local/bin"
+SIMPLE_OBFS_BIN_PATH="/usr/local/bin/obfs-server"
+
+
+# goquiet
+GOQUIET_INSTALL_PATH="/usr/local/bin"
+GOQUIET_BIN_PATH="/usr/local/bin/gq-server"
+
+
 # cloak
+CLOAK_INSTALL_PATH="/usr/local/bin"
+CLOAK_SERVER_BIN_PATH="/usr/local/bin/ck-server"
+CLOAK_CLIENT_BIN_PATH="/usr/local/bin/ck-client"
 CLOAK_INIT="/etc/init.d/cloak"
 CLOAK_CENTOS="${BASE_URL}/service/cloak_centos.sh"
 CLOAK_DEBIAN="${BASE_URL}/service/cloak_debian.sh"
@@ -86,7 +106,8 @@ CK_SERVER_CONFIG="/etc/cloak/ckserver.json"
 
 
 # caddy
-CADDY_FILE="/usr/local/caddy/caddy"
+CADDY_INSTALL_PATH="/usr/local/caddy"
+CADDY_BIN_PATH="/usr/local/caddy/caddy"
 CADDY_CONF_FILE="/usr/local/caddy/Caddyfile"
 CADDY_BASE_URL="https://caddyserver.com/download/linux/amd64"
 CADDY_INIT="/etc/init.d/caddy"
@@ -94,6 +115,11 @@ ONLINE_CADDY_CENTOS_INIT_URL="${BASE_URL}/service/caddy_centos.sh"
 LOCAL_CADDY_DEBIAN_INIT_PATH="./service/caddy_centos.sh"
 ONLINE_CADDY_DEBIAN_INIT_URL="${BASE_URL}/service/caddy_debian.sh"
 LOCAL_CADDY_DEBIAN_INIT_PATH="./service/caddy_debian.sh"
+
+
+# nginx
+NGINX_BIN_PATH="/usr/sbin/nginx"
+NGINX_CONFIG="/etc/nginx/nginx.conf"
 
 
 # shadowsocks-libev Ciphers
@@ -203,6 +229,7 @@ usage() {
         stop             关闭
         restart          重启
         status           查看状态
+        script           升级脚本
         show             显示可视化配置
         uid              为cloak添加一个新的uid用户
         link             用新添加的uid生成一个新的SS://链接
@@ -214,7 +241,80 @@ usage() {
   
 	EOF
 
-	exit $1
+    exit $1
+}
+
+menu_status(){
+    local BIN_PATH=$1
+    local SS_PID=$2
+    
+    if [[ -e ${BIN_PATH} ]] && [[ -e ${V2RAY_PLUGIN_BIN_PATH} ]] && [[ -e ${CADDY_BIN_PATH}  ]]; then
+        V2_PID=`ps -ef |grep -v grep | grep v2ray-plugin |awk '{print $2}'`
+        CADDY_PID=`ps -ef |grep -v grep | grep caddy |awk '{print $2}'`
+        
+        if [[ ! -z ${SS_PID} ]] && [[ ! -z ${V2_PID} ]] && [[ ! -z ${CADDY_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+    elif [[ -e ${BIN_PATH} ]] && [[ -e ${V2RAY_PLUGIN_BIN_PATH} ]] && [[ -e ${NGINX_BIN_PATH}  ]]; then
+        V2_PID=`ps -ef |grep -v grep | grep v2ray-plugin |awk '{print $2}'`
+        NGINX_PID=`ps -ef |grep -v grep | grep nginx.conf |awk '{print $2}'`
+        
+        if [[ ! -z ${SS_PID} ]] && [[ ! -z ${V2_PID} ]] && [[ ! -z ${NGINX_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+    elif [[ -e ${BIN_PATH} ]] && [[ -e ${V2RAY_PLUGIN_BIN_PATH} ]]; then
+        V2_PID=`ps -ef |grep -v grep | grep v2ray-plugin |awk '{print $2}'`
+        
+        if [[ ! -z ${SS_PID} ]] && [[ ! -z ${V2_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+    elif [[ -e ${BIN_PATH} ]] && [[ -e ${KCPTUN_BIN_PATH} ]]; then
+        KP_PID=`ps -ef |grep -v grep | grep kcptun-server |awk '{print $2}'`
+        
+        if [[ ! -z ${SS_PID} ]] && [[ ! -z ${KP_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+     elif [[ -e ${BIN_PATH} ]] && [[ -e ${SIMPLE_OBFS_BIN_PATH} ]]; then
+        OBFS_PID=`ps -ef |grep -v grep | grep obfs-server |awk '{print $2}'`
+        
+        if [[ ! -z ${SS_PID} ]] && [[ ! -z ${OBFS_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+     elif [[ -e ${BIN_PATH} ]] && [[ -e ${GOQUIET_BIN_PATH} ]]; then    
+        GQ_PID=`ps -ef |grep -v grep | grep gq-server |awk '{print $2}'`
+        
+        if [[ ! -z ${SS_PID} ]] && [[ ! -z ${GQ_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+     elif [[ -e ${BIN_PATH} ]] && [[ -e ${CLOAK_SERVER_BIN_PATH} ]]; then
+        CK_PID=`ps -ef |grep -v grep | grep ck-server |awk '{print $2}'`
+        
+        if [[ ! -z ${SS_PID} ]] && [[ ! -z ${CK_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+    elif [[ -e ${BIN_PATH} ]]; then
+        if [[ ! -z ${SS_PID} ]]; then
+            echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
+        else
+            echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
+        fi
+    else
+        echo -e " 当前状态: ${Red}未安装${suffix}"
+    fi
 }
 
 improt_package(){
@@ -377,25 +477,29 @@ check_port_occupy(){
         package_install "lsof" > /dev/null 2>&1
     fi
     
-	if [[ `lsof -i:"${PROT}" | grep -v google_ | grep -v COMMAND | wc -l` -ne 0 ]];then
+    if [[ `lsof -i:"${PROT}" | grep -v google_ | grep -v COMMAND | wc -l` -ne 0 ]];then
         # Occupied
         return 0
-	else
+    else
         # Unoccupied
-		return 1
-	fi
+        return 1
+    fi
 }
 
-check_script_version(){
-	SHELL_VERSION_NEW=$(wget --no-check-certificate -qO- -t1 -T3 "https://git.io/fjlbl"|grep 'SHELL_VERSION="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1)
-	[[ -z ${SHELL_VERSION_NEW} ]] && echo -e "${Error} 无法链接到 Github !" && exit 0
-	if version_gt ${SHELL_VERSION_NEW} ${SHELL_VERSION}; then
+check_script_update(){
+    SHELL_VERSION_NEW=$(wget --no-check-certificate -qO- "https://git.io/fjlbl"|grep 'SHELL_VERSION="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1)
+    [[ -z ${SHELL_VERSION_NEW} ]] && echo -e "${Error} 无法链接到 Github !" && exit 0
+    if version_gt ${SHELL_VERSION_NEW} ${SHELL_VERSION}; then
         echo
         echo -e "${Green}当前脚本版本为：${SHELL_VERSION} 检测到有新版本可更新.${suffix}"
         echo -e "按任意键开始…或按Ctrl+C取消"
         char=`get_char`
         wget -N --no-check-certificate -O ss-plugins.sh "https://git.io/fjlbl" && chmod +x ss-plugins.sh
         echo -e "脚本已更新为最新版本[ ${SHELL_VERSION_NEW} ] !(注意：因为更新方式为直接覆盖当前运行的脚本，所以可能下面会提示一些报错，无视即可)" && exit 0
+    else
+        echo
+        echo -e "${Info} 当前脚本版本为: ${SHELL_VERSION} 未检测到更新版本."
+        echo
     fi
 }
 
@@ -644,7 +748,7 @@ download_service_file(){
 
 download_ss_file(){
     cd ${CUR_DIR}
-    if [[ ${SS_VERSION} = "shadowsocks-libev" ]]; then
+    if [[ ${SS_VERSION} = "ss-libev" ]]; then
         # Download Shadowsocks-libev
         libev_ver=$(wget --no-check-certificate -qO- https://api.github.com/repos/shadowsocks/shadowsocks-libev/releases | grep -o '"tag_name": ".*"' | head -n 1| sed 's/"//g;s/v//g' | sed 's/tag_name: //g')
         [ -z ${libev_ver} ] && echo -e "${Error} 获取 shadowsocks-libev 最新版本失败." && exit 1
@@ -655,7 +759,7 @@ download_ss_file(){
         shadowsocks_libev_url="https://github.com/shadowsocks/shadowsocks-libev/releases/download/v${libev_ver}/shadowsocks-libev-${libev_ver}.tar.gz"
         download "${shadowsocks_libev_file}.tar.gz" "${shadowsocks_libev_url}"
         download_service_file ${SHADOWSOCKS_LIBEV_INIT} ${SHADOWSOCKS_LIBEV_CENTOS} ${SS_INIT_CENTOS} ${SHADOWSOCKS_LIBEV_DEBIAN} ${SS_INIT_DEBIAN}
-    elif [[ ${SS_VERSION} = "shadowsocks-rust" ]]; then
+    elif [[ ${SS_VERSION} = "ss-rust" ]]; then
         # Download Shadowsocks-libev
         rust_ver=$(wget --no-check-certificate -qO- https://api.github.com/repos/shadowsocks/shadowsocks-rust/releases | grep -o '"tag_name": ".*"' | head -n 1| sed 's/"//g;s/v//g' | sed 's/tag_name: //g')
         [ -z ${rust_ver} ] && echo -e "${Error} 获取 shadowsocks-rust 最新版本失败." && exit 1
@@ -700,7 +804,7 @@ download_plugins_file(){
         # Download cloak server
         cloak_ver=$(wget --no-check-certificate -qO- https://api.github.com/repos/cbeuw/Cloak/releases | grep -o '"tag_name": ".*"' |head -n 1| sed 's/"//g;s/v//g' | sed 's/tag_name: //g')
         [ -z ${cloak_ver} ] && echo -e "${Error} 获取 cloak 最新版本失败." && exit 1
-        cloak_ver="2.1.1"
+        # cloak_ver="2.1.1"
         cloak_file="ck-server-linux-amd64-${cloak_ver}"
         cloak_url="https://github.com/cbeuw/Cloak/releases/download/v${cloak_ver}/ck-server-linux-amd64-${cloak_ver}"
         download "${cloak_file}" "${cloak_url}"
@@ -732,14 +836,14 @@ install_dependencies(){
         echo -e "${Info} EPEL存储库检查完成."
 
         yum_depends=(
-            gettext gcc pcre pcre-devel autoconf libtool automake make asciidoc xmlto c-ares-devel libev-devel zlib-devel openssl-devel git wget qrencode jq
+            gettext gcc pcre pcre-devel autoconf libtool automake make asciidoc xmlto c-ares-devel libev-devel zlib-devel openssl-devel git qrencode jq
         )
         for depend in ${yum_depends[@]}; do
             error_detect_depends "yum -y install ${depend}"
         done
     elif check_sys packageManager apt; then
         apt_depends=(
-            gettext gcc build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev automake libssl-dev git wget qrencode jq
+            gettext gcc build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev automake libssl-dev git qrencode jq
         )
 
         apt-get -y update
@@ -820,7 +924,11 @@ config_ss(){
 
     local server_value="\"0.0.0.0\""
     if get_ipv6; then
-        server_value="[\"[::0]\",\"0.0.0.0\"]"
+        local V=${SS_VERSION}
+        local N=${plugin_num}
+        if [[ ${V} = "ss-libev" ]] && [[ ${N} = "2" ]] || [[ ${N} = "3" ]] || [[ ${N} == "5" ]] || [[ -z ${N} ]]; then
+            server_value="[\"[::0]\",\"0.0.0.0\"]"
+        fi
     fi
 
     if [ ! -d "$(dirname ${SHADOWSOCKS_CONFIG})" ]; then
@@ -839,10 +947,20 @@ config_ss(){
             ss_v2ray_quic_tls_cdn_config
         elif [[ ${libev_v2ray} == "4" ]]; then
             ss_v2ray_ws_tls_web_config
-            caddy_config_none_cdn    
+            if [[ ${web_flag} = "1" ]]; then
+                caddy_config_none_cdn
+            elif [[ ${web_flag} = "2" ]]; then
+                mirror_domain=$(echo ${mirror_site} | sed 's/https:\/\///g')
+                nginx_config
+            fi 
         elif [[ ${libev_v2ray} == "5" ]]; then
             ss_v2ray_ws_tls_web_cdn_config
-            caddy_config_with_cdn
+            if [[ ${web_flag} = "1" ]]; then
+                caddy_config_with_cdn
+            elif [[ ${web_flag} = "2" ]]; then
+                mirror_domain=$(echo ${mirror_site} | sed 's/https:\/\///g')
+                nginx_config
+            fi 
         fi
     elif [[ ${plugin_num} == "2" ]]; then
         if [ ! -d "$(dirname ${KCPTUN_CONFIG})" ]; then
@@ -906,9 +1024,9 @@ gen_ss_links(){
 
 install_completed(){
     ldconfig
-    if [[ ${SS_VERSION} = "shadowsocks-libev" ]]; then
+    if [[ ${SS_VERSION} = "ss-libev" ]]; then
         ${SHADOWSOCKS_LIBEV_INIT} start > /dev/null 2>&1
-    elif [[ ${SS_VERSION} = "shadowsocks-rust" ]]; then
+    elif [[ ${SS_VERSION} = "ss-rust" ]]; then
         ${SHADOWSOCKS_RUST_INIT} start > /dev/null 2>&1
     fi
     
@@ -924,18 +1042,20 @@ install_completed(){
         elif [[ ${libev_v2ray} == "3" ]]; then
             ss_v2ray_quic_tls_cdn_show
         elif [[ ${libev_v2ray} == "4" ]]; then
-            # start caddy
-            /etc/init.d/caddy start > /dev/null 2>&1
-            
+            if [[ ${web_flag} = "1" ]]; then
+                # start caddy
+                /etc/init.d/caddy start > /dev/null 2>&1
+            elif [[ ${web_flag} = "2" ]]; then
+                systemctl start nginx
+            fi 
             ss_v2ray_ws_tls_web_show
         elif [[ ${libev_v2ray} == "5" ]]; then
-            # cloudflare email & api key
-            export CLOUDFLARE_EMAIL="${CF_Email}"
-            export CLOUDFLARE_API_KEY="${CF_Key}"
-            
-            # start caddy
-            /etc/init.d/caddy start > /dev/null 2>&1
-            
+            if [[ ${web_flag} = "1" ]]; then
+                # start caddy
+                /etc/init.d/caddy start > /dev/null 2>&1
+            elif [[ ${web_flag} = "2" ]]; then
+                systemctl start nginx
+            fi 
             ss_v2ray_ws_tls_web_cdn_show
         fi
     elif [[ ${plugin_num} == "2" ]]; then
@@ -1002,14 +1122,14 @@ install_prepare(){
     echo "按任意键开始…或按Ctrl+C取消"
     char=`get_char`
     
-    if [[ ${SS_VERSION} = "shadowsocks-rust" ]] && [[ "${plugin_num}" != "3" ]]; then
+    if [[ ${SS_VERSION} = "ss-rust" ]] && [[ "${plugin_num}" != "3" ]]; then
         echo
         echo -e "${Info} 即将开始下载相关文件请稍等."
     fi
 }
 
 install_main(){
-    if [[ ${SS_VERSION} = "shadowsocks-libev" ]]; then
+    if [[ ${SS_VERSION} = "ss-libev" ]]; then
         install_libsodium
         if ! ldconfig -p | grep -wq "/usr/lib"; then
             echo "/usr/lib" > /etc/ld.so.conf.d/lib.conf
@@ -1019,16 +1139,21 @@ install_main(){
     fi
     
     improt_package "tools" "shadowsocks_install.sh"
-    if [[ ${SS_VERSION} = "shadowsocks-libev" ]]; then
+    if [[ ${SS_VERSION} = "ss-libev" ]]; then
         install_shadowsocks_libev
-    elif [[ ${SS_VERSION} = "shadowsocks-rust" ]]; then
+    elif [[ ${SS_VERSION} = "ss-rust" ]]; then
         install_shadowsocks_rust
     fi
     
     if [ "${plugin_num}" == "1" ]; then
         improt_package "plugins" "v2ray_plugin_install.sh"
         install_v2ray_plugin
-        choose_caddy_extension ${libev_v2ray}
+        if [[ ${web_flag} = "1" ]]; then
+            choose_caddy_extension ${libev_v2ray}
+        elif [[ ${web_flag} = "2" ]]; then
+            improt_package "tools" "nginx_install.sh"
+            install_nginx
+        fi
         plugin_client_name="v2ray"
     elif [ "${plugin_num}" == "2" ]; then
         improt_package "plugins" "kcptun_install.sh"
@@ -1052,13 +1177,17 @@ install_main(){
 }
 
 install_step_all(){
-    [[ -e '/usr/local/bin/ss-server' ]] || [[ -e '/usr/local/bin/ssserver' ]] && echo -e "${Info} Shadowsocks 已经安装." && exit 1
+    [[ -e ${SHADOWSOCKS_LIBEV_BIN_PATH} ]] || [[ -e ${SHADOWSOCKS_RUST_BIN_PATH} ]] && echo -e "${Info} Shadowsocks 已经安装." && exit 1
     disable_selinux
     install_prepare
-    if [[ ${SS_VERSION} = "shadowsocks-libev" ]]; then
+    if [[ ${SS_VERSION} = "ss-libev" ]]; then
         install_dependencies
-    elif [[ ${SS_VERSION} = "shadowsocks-rust" ]] && [[ "${plugin_num}" == "3" ]]; then
+    elif [[ ${SS_VERSION} = "ss-rust" ]] && [[ "${plugin_num}" == "3" ]]; then
         install_dependencies
+    elif [[ ${SS_VERSION} = "ss-rust" ]] && [[ "${plugin_num}" == "5" ]]; then
+        if [ ! "$(command -v jq)" ]; then
+            package_install "jq" > /dev/null 2>&1
+        fi
     fi
     download_ss_file
     download_plugins_file
@@ -1101,6 +1230,45 @@ install_cleanup(){
     rm -rf ${cloak_file}
 }
 
+do_uid(){
+    if [ "$(command -v ck-server)" ]; then
+        improt_package "utils" "ck_user_manager.sh"
+        ck2_users_manager
+        sleep 0.5
+        
+        is_the_api_open "stop"
+    else
+        echo
+        echo -e "${Error} 仅支持 ss + cloak 组合下使用，请确认是否是以该组合形式运行."
+        echo
+    fi
+}
+
+do_link(){
+    local CK_UID=$1
+    
+    if [ "$(command -v ck-server)" ]; then
+        improt_package "utils" "ck_sslink.sh"
+        get_link_of_ck2 "${CK_UID}"
+    else
+        echo
+        echo -e "${Error} 仅支持 ss + cloak 组合下使用，请确认是否是以该组合形式运行."
+        echo
+    fi
+}
+
+do_scan(){
+    local SS_URL=$1
+    
+    improt_package "utils" "qr_code.sh"
+    gen_qr_code "${SS_URL}"
+}
+
+do_show(){
+    improt_package "utils" "view_config.sh"
+    show_config "standalone"
+}
+
 do_start(){
     if [[ ! "$(command -v ss-server)" ]] && [[ ! "$(command -v ssserver)" ]]; then
         echo
@@ -1118,6 +1286,7 @@ do_start(){
     goquiet_start
     cloak_start
     caddy_start
+    nginx_start
 }
 
 do_stop(){
@@ -1129,6 +1298,7 @@ do_stop(){
     goquiet_stop
     cloak_stop
     caddy_stop
+    nginx_stop
 }
 
 do_restart(){
@@ -1136,78 +1306,20 @@ do_restart(){
     do_start
 }
 
-# install status
 do_status(){
     local mark=$1
     if [ "$(command -v ss-server)" ]; then
         PID=`ps -ef |grep -v grep | grep ss-server |awk '{print $2}'`
-        local BIN_PATH=/usr/local/bin/ss-server
+        local BIN_PATH=${SHADOWSOCKS_LIBEV_BIN_PATH}
         local SS_PID=${PID}
     elif [ "$(command -v ssserver)" ]; then
         RUST_PID=`ps -ef |grep -v grep | grep ssserver |awk '{print $2}'`
-        local BIN_PATH=/usr/local/bin/ssserver
+        local BIN_PATH=${SHADOWSOCKS_RUST_BIN_PATH}
         local SS_PID=${RUST_PID}
     fi
     
     if [[ ${mark} == "menu" ]]; then
-        if [[ -e ${BIN_PATH} ]] && [[ "$(command -v v2ray-plugin)" ]] && [[ -e "${CADDY_FILE}"  ]]; then
-            V2_PID=`ps -ef |grep -v grep | grep v2ray-plugin |awk '{print $2}'`
-            CADDY_PID=`ps -ef |grep -v grep | grep caddy |awk '{print $2}'`
-            
-            if [[ ! -z "${SS_PID}" ]] && [[ ! -z "${V2_PID}" ]] && [[ ! -z "${CADDY_PID}" ]]; then
-                echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
-            else
-                echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
-            fi
-        elif [[ -e ${BIN_PATH} ]] && [[ "$(command -v v2ray-plugin)" ]]; then
-            V2_PID=`ps -ef |grep -v grep | grep v2ray-plugin |awk '{print $2}'`
-            
-            if [[ ! -z "${SS_PID}" ]] && [[ ! -z "${V2_PID}" ]]; then
-                echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
-            else
-                echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
-            fi
-        elif [[ -e ${BIN_PATH} ]] && [[ "$(command -v kcptun-server)" ]]; then
-            KP_PID=`ps -ef |grep -v grep | grep kcptun-server |awk '{print $2}'`
-            
-            if [[ ! -z "${SS_PID}" ]] && [[ ! -z "${KP_PID}" ]]; then
-                echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
-            else
-                echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
-            fi
-         elif [[ -e ${BIN_PATH} ]] && [[ "$(command -v obfs-server)" ]]; then
-            OBFS_PID=`ps -ef |grep -v grep | grep obfs-server |awk '{print $2}'`
-            
-            if [[ ! -z "${SS_PID}" ]] && [[ ! -z "${OBFS_PID}" ]]; then
-                echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
-            else
-                echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
-            fi
-         elif [[ -e ${BIN_PATH} ]] && [[ "$(command -v gq-server)" ]]; then    
-            GQ_PID=`ps -ef |grep -v grep | grep gq-server |awk '{print $2}'`
-            
-            if [[ ! -z "${SS_PID}" ]] && [[ ! -z "${GQ_PID}" ]]; then
-                echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
-            else
-                echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
-            fi
-         elif [[ -e ${BIN_PATH} ]] && [[ "$(command -v ck-server)" ]]; then
-            CK_PID=`ps -ef |grep -v grep | grep ck-server |awk '{print $2}'`
-            
-            if [[ ! -z "${SS_PID}" ]] && [[ ! -z "${CK_PID}" ]]; then
-                echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
-            else
-                echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
-            fi
-        elif [[ -e ${BIN_PATH} ]]; then
-            if [[ ! -z "${SS_PID}" ]]; then
-                echo -e " 当前状态: ${Green}已安装${suffix} 并 ${Green}已启动${suffix}"
-            else
-                echo -e " 当前状态: ${Green}已安装${suffix} 但 ${Red}未启动${suffix}"
-            fi
-        else
-            echo -e " 当前状态: ${Red}未安装${suffix}"
-        fi
+        menu_status ${BIN_PATH} ${SS_PID}
     else
         if [[ ! -e ${BIN_PATH} ]]; then
             echo
@@ -1226,9 +1338,9 @@ do_update(){
     
     improt_package "utils" "update.sh"
     
-    if [[ -e '/usr/local/bin/ss-server' ]]; then
+    if [[ -e ${SHADOWSOCKS_LIBEV_BIN_PATH} ]]; then
         update_shadowsocks_libev
-    elif [[ -e '/usr/local/bin/ssserver' ]]; then
+    elif [[ -e ${SHADOWSOCKS_RUST_BIN_PATH} ]]; then
         update_shadowsocks_rust
     fi
 }
@@ -1253,11 +1365,14 @@ do_uninstall(){
     goquiet_uninstall
     cloak_uninstall
     caddy_uninstall
+    nginx_uninstall
     ipcalc_uninstall
     echo -e "${Info} Shadowsocks 卸载成功."
 }
 
 do_install(){
+    local FLAG
+    
     # check supported
     if ! install_check; then
         echo -e "[${Red}Error${suffix}] Your OS is not supported to run it!"
@@ -1265,7 +1380,15 @@ do_install(){
         exit 1
     fi
     
-    echo -e " Shadowsocks一键管理脚本 ${Red}[v${SHELL_VERSION} ${methods}]${suffix}
+    if [[ -e ${SHADOWSOCKS_LIBEV_BIN_PATH} ]]; then
+        FLAG="Shadowsocks-libev"
+    elif [[ -e ${SHADOWSOCKS_RUST_BIN_PATH} ]]; then
+        FLAG="Shadowsocks-rust"
+    else
+        FLAG="Shadowsocks"
+    fi
+    
+    echo -e " ${FLAG}一键脚本 ${Red}[v${SHELL_VERSION} ${methods}]${suffix}
 
     ${Green}1.${suffix} BBR
     ${Green}2.${suffix} Install
@@ -1291,9 +1414,6 @@ do_install(){
 
 
 
-# check script version and update
-check_script_version
-
 # install and tools
 action=${1:-"install"}
 
@@ -1304,32 +1424,20 @@ case ${action} in
     status)
         do_${action} "status"
         ;;
+    script)
+        check_script_update
+        ;;
     uid)
-        if [ "$(command -v ck-server)" ]; then
-            improt_package "utils" "ck_user_manager.sh"
-            ck2_users_manager
-            sleep 0.5
-            
-            is_the_api_open "stop"
-        else
-            echo -e " ${Error} 仅支持 ss + cloak 组合下使用，请确认是否是以该组合形式运行."
-        fi
+        do_${action} 
         ;;
     link)
-        if [ "$(command -v ck-server)" ]; then
-            improt_package "utils" "ck_sslink.sh"
-            get_link_of_ck2 "${2}"
-        else
-            echo -e " ${Error} 仅支持 ss + cloak 组合下使用，请确认是否是以该组合形式运行."
-        fi
+        do_${action}  "${2}"
         ;;
     scan)
-        improt_package "utils" "qr_code.sh"
-        gen_qr_code "${2}"
+        do_${action}  "${2}"
         ;;
     show)
-        improt_package "utils" "view_config.sh"
-        show_config "standalone"
+        do_${action}
         ;;
     help)
         usage 0
@@ -1337,5 +1445,4 @@ case ${action} in
     *)
         usage 1
         ;;
-        
 esac
